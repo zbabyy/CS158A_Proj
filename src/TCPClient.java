@@ -1,92 +1,117 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.stream.IntStream;
 
+//Client class
 public class TCPClient {
+    static long outerBound = 0;                                                                             //last sequence number in segment
+    static int missing = 0;                                                                                 //count of missing segments
+    static boolean loss = false;                                                                            //flag to indicate there was segment loss
+    static int missingSegment = 0;                                                                          //to keep track of the first (oldest) segment that went missing
+    static int segmentCounter = 1;                                                                          //tracking the current segment being transmitted
+    static boolean halved = false;                                                                          //flag to determine if window was already divided in two
+
     public static void main(String[] args) {
-        String serverIp = "192.168.4.102";
+        String serverIp = "192.168.4.102";                                                                  //local IP address of machine
         int serverPort = 12345;
 
         String initialString = "network";
+        //constants for segment size (no. of sequence numbers) and timeout (to wait when segments go missing, to move to the next segment without overlap)
         int SEGMENT_SIZE = 1024;
+        int TIMEOUT = 1000;
 
         try {
             Socket clientSocket = new Socket(serverIp, serverPort);
+            clientSocket.setSoTimeout(TIMEOUT);
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            // Sending initial string
             System.out.println("Sending initial string: " + initialString);
-            out.println(initialString);
-            String successResponse = in.readLine();
+            out.println(initialString);                                                                     //sending the initial string to the server
+            String successResponse = in.readLine();                                                         //reading the response from the server
             System.out.println("Received success response: " + successResponse);
 
-            int slidingWindow = 1; // Initialize sliding window to 1 segment (1024 sequence numbers)
-//            int sequenceNumber = 0;
-            int [] sequenceNumber = IntStream.rangeClosed(1, 1024).toArray();
-            int TOTAL_SEGMENTS = 65; // Number of segments to send
-            boolean lostSegment = false;
-            int windowSize = 1;
+            int slidingWindow = 1;                                                                          //initializing sliding window to one segment
+            int [] sequenceNumber = IntStream.rangeClosed(1, 1024).toArray();                               //initializing sequence numbers for first segment as array of 1 - 1024
+            int TOTAL_SEGMENTS = 200;                                                                       //constant for total number of segments being transmitted
+            double windowSize = 1;
             long innerBound = 1;
-            long outerBound = 0;
-            int segmentCounter = 1;
-            while (segmentCounter < TOTAL_SEGMENTS + 1) {
-                outerBound = windowSize * SEGMENT_SIZE;
+
+            while (segmentCounter < TOTAL_SEGMENTS + 1) {                                                   //loop goes as long as the number of segments is within the total amount being transmitted
+                outerBound = (int) (windowSize * SEGMENT_SIZE);
                 System.out.println("Sending segment: " + segmentCounter + ": " + innerBound + " - " + outerBound);
 
-                int [] tempSegment = IntStream.rangeClosed((int)innerBound, (int)outerBound).toArray();
-                for (int i = 0; i < tempSegment.length; i++) {
-                    out.println(tempSegment[i]);
-                }
-                String ack = in.readLine();
-                System.out.println("ack: " + ack);
+                int [] tempSegment = IntStream.rangeClosed((int)innerBound, (int)outerBound).toArray();     //temporary array representing the segment from innerBound to upperBound (first and last sequence numbers in window)
 
-//                if (ack.startsWith("ACK")) {
-//                    int ackedSeqNum = Integer.parseInt(ack.substring(4).trim());
-//                    if (ackedSeqNum == sequenceNumber + 1) {
-//                        slidingWindow = adjustSlidingWindow(slidingWindow, true, lostSegment);
-//                        sequenceNumber++;
-//                        lostSegment = false;
-//                    } else {
-//                        slidingWindow = adjustSlidingWindow(slidingWindow, false, lostSegment);
-//                        lostSegment = true;
-//                    }
-//                }
-
-//                System.out.println("Sent: " + sequenceNumber + " Sliding window: " + slidingWindow);
-
-
-                if (1 + (outerBound - innerBound) < (long) Math.pow(2, 16)) {
-                    windowSize *= 2;
+                if (segmentCounter % 13 != 0) {                                                             //this condition simulates segment loss every 13 segments
+                    writeInts(out, tempSegment);                                                            //calls method to write both the segment length and the sequence numbers to the server
                 }
 
-                segmentCounter ++;
+                waitForACK(in);                                                                             //calls method that waits for ACK and acts accordingly
+                    if (!loss) {                                                                            //same logic as in server, if there is no loss so far, check if the window has not reached max value of 2^16, to increase it by double
+                        if (1 + (outerBound - innerBound) < (long) Math.pow(2, 16)) {
+                            windowSize *= 2;
+                        }
+                    }
+                    else {                                                                                  //if loss has been detected, check if the window has already been halved. If not, half it and set that flag to true, means current segment was lost
+                        if (!halved) {
+                            windowSize /= 2;
+                            halved = true;
+                        }
+                        else {                                                                              //if loss has been detected and window was halved, check if it is not at max value 2^16 before incrementing window size by 1, this means this current segment wasn't lost but there has been loss before
+                            if (1 + (outerBound - innerBound) < (long) Math.pow(2, 16)) {
+                                windowSize++;
+                            }
+                        }
+                    }
+
+                segmentCounter ++;                                                                          //increment number of segments
             }
+            if (missing != 0) {                                                                             //same as in server, here the oldest missing segment and it's outer bound (last sequence number) are saved, and are retransmitted at the end
+                System.out.println("Re-sending oldest missing segment (" + missingSegment + "): 1 - " + missing);
+                out.println(missing);                                                                       //the sequence number is re-sent to the server
+                waitForACK(in);                                                                             //method is called again to wait for ACK from server
+            }
+            clientSocket.close();                                                                           //closing the socket
 
-            clientSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static int log2(int x) {
-        return (int) (Math.log(x) / Math.log(2));
+    /*
+    params: out: PrintWriter, ints: int[]
+    return: void
+    sends the current segment size to server, and then iterates the segment to send each sequence number
+     */
+    private static void writeInts(PrintWriter out, int[] ints) throws IOException {
+        out.println(ints.length);
+        for (int e : ints) {
+            out.println(e);
+        }
+        out.flush();
     }
 
-    private static int adjustSlidingWindow(int windowSize, boolean acked, boolean lostSegment) {
-        if (acked) {
-            if (windowSize < 65536) {
-                windowSize = Math.min(windowSize * 2, 65536); // Maximum sliding window size is 2^16
-            } else {
-                windowSize = 65536; // Maintain the maximum value
-            }
-        } else {
-            if (lostSegment) {
-                windowSize = Math.max(windowSize / 2, 1); // Reduce sliding window to half on segment loss
-            } else {
-                windowSize = windowSize + 1; // Increase linearly by 1 segment on any successful transmission after segment loss
+    /*
+    params: in: BufferedReader
+    return: void
+    this method handles receiving acknowledgement from the server
+     */
+    private static void waitForACK(BufferedReader in)  {
+        try {
+            String ack = in.readLine();                         //reading from server
+            System.out.println("Received ACK: " + ack + "\n");
+        }
+        catch (IOException e) {                                 //if unable to read from server, means ACK wasn't received and current segment was lost
+            loss = true;                                        //setting this flag to true to indicate there was segment loss
+            System.out.println("Missing ACK" + "\n");
+            halved = false;                                     //setting this flag to false, because we need to half this window as the current segment was lost
+            if (missing == 0) {                                 //setting the oldest missing segment, by making sure it has not been set before with this check
+                missing = (int) outerBound;
+                missingSegment = segmentCounter;
             }
         }
-        return windowSize;
     }
+
 }
