@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 //Server class
 public class TCPServer {
@@ -23,6 +24,10 @@ public class TCPServer {
     }
 
     private static void handleClient(Socket clientSocket) throws IOException {
+
+        ArrayList<Double> windowSizes = new ArrayList<>();                                         //keeping track of windowSize as it changes, for graph
+        ArrayList<Integer> seqNumsReceived = new ArrayList<>();                                     //keeping track of received sequence numbers, for graph
+
         //constants for segment size (no. of sequence numbers) and total segments being transmitted
         int SEGMENT_SIZE = 1024;
         long TOTAL_SEGMENTS = 200;
@@ -55,6 +60,7 @@ public class TCPServer {
                 break;
             }
             receivedSeqNum = segment[segment.length - 1];                                           //received sequence number is last value in segment array (1024, 2048, 3072, 4096, etc.)
+            seqNumsReceived.add(receivedSeqNum);                                                    //populating to array of received seq numbers, for graph
             System.out.println("Received segment " + segmentCounter++ + ": 1 - " + receivedSeqNum); //incrementing segment counter value to keep track of how many segments are received
             System.out.println("Sending ACK: " + (receivedSeqNum + 1) + "\n");
             out.println((receivedSeqNum + 1));                                                      //sending ACK back to client upon receiving segment, which is the received sequence number (last value in segment) + 1
@@ -78,6 +84,8 @@ public class TCPServer {
                 missingSegments++;                                                                  //keeping track of how many segments are missing.
                 tempMissingSegments++;                                                              //this value is used for goodput as well for the same reason as tempReceivedSegments
             }
+
+            windowSizes.add(expectedSegment);                                                       //populating array of updated window size, for graph
 
             //calculating the goodput every 1000 segments received
             if (receivedSegments % 1000 == 0) {
@@ -116,6 +124,54 @@ public class TCPServer {
 //        System.out.println("Average Goodput: " + averageGoodPut);
         averageGoodput(goodput);    //calling method to calculate average goodput at the end
         System.out.println("Total Missing Segments: " + missingSegments);
+
+        System.out.println(windowSizes);
+        System.out.println(seqNumsReceived);
+
+        createWindowSizeTable(windowSizes);
+        createReceivedSeqNumTable(seqNumsReceived);
+    }
+
+    private static void createWindowSizeTable(ArrayList<Double> windowSizes) {
+        String csvPath = "window-size-by-time.csv";
+        try {
+            FileWriter fw = new FileWriter(csvPath);
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            bw.write("Segment,Window Size");
+            bw.newLine();
+
+            for (int i = 0; i < windowSizes.size(); i++) {
+                bw.write((i + 1) + "," + windowSizes.get(i));
+                bw.newLine();
+            }
+            bw.close();
+            fw.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createReceivedSeqNumTable(ArrayList<Integer> seqNumsReceived) {
+        String csvPath = "seq-num-received-by-time.csv";
+        try {
+            FileWriter fw = new FileWriter(csvPath);
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            bw.write("Segment,Sequence Number Received");
+            bw.newLine();
+
+            for (int i = 0; i < seqNumsReceived.size(); i++) {
+                bw.write((i + 1) + "," + seqNumsReceived.get(i));
+                bw.newLine();
+            }
+            bw.close();
+            fw.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /*

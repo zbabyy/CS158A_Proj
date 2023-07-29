@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.stream.IntStream;
 
 //Client class
@@ -11,6 +12,7 @@ public class TCPClient {
     static int missingSegment = 0;                                                                          //to keep track of the first (oldest) segment that went missing
     static int segmentCounter = 1;                                                                          //tracking the current segment being transmitted
     static boolean halved = false;                                                                          //flag to determine if window was already divided in two
+    static ArrayList<HashMap<Integer, Long>> seqNumsDropped = new ArrayList<>();
 
     public static void main(String[] args) {
         String serverIp = "192.168.4.102";                                                                  //local IP address of machine
@@ -58,6 +60,10 @@ public class TCPClient {
                         if (!halved) {
                             windowSize /= 2;
                             halved = true;
+
+                            HashMap<Integer, Long> hm = new HashMap<>();
+                            hm.put(segmentCounter, outerBound);
+                            seqNumsDropped.add(hm);
                         }
                         else {                                                                              //if loss has been detected and window was halved, check if it is not at max value 2^16 before incrementing window size by 1, this means this current segment wasn't lost but there has been loss before
                             if (1 + (outerBound - innerBound) < (long) Math.pow(2, 16)) {
@@ -75,7 +81,33 @@ public class TCPClient {
             }
             clientSocket.close();                                                                           //closing the socket
 
+            System.out.println(seqNumsDropped);
+            createDroppedSeqNumTable(seqNumsDropped);
+
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createDroppedSeqNumTable(ArrayList<HashMap<Integer, Long>> hm) {
+        String csvPath = "seq-num-dropped-by-time.csv";
+        try {
+            FileWriter fw = new FileWriter(csvPath);
+            BufferedWriter bw = new BufferedWriter(fw);
+
+            bw.write("Segment,Sequence Number Dropped");
+            bw.newLine();
+
+            for (HashMap<Integer, Long> hmap : hm) {
+                for (Integer key : hmap.keySet()) {
+                    bw.write(key + "," + hmap.get(key));
+                    bw.newLine();
+                }
+            }
+            bw.close();
+            fw.close();
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
