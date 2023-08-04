@@ -3,8 +3,13 @@
   <component name="ChangeListManager">
     <list default="true" id="80c2502f-0dd7-4510-bb38-59512d88d2b7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/goodputs.csv" beforeDir="false" afterPath="$PROJECT_DIR$/goodputs.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/CS158A_Proj/TCPClient.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/CS158A_Proj/TCPClient.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/CS158A_Proj/TCPServer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/CS158A_Proj/TCPServer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/received-window-size-by-time.csv" beforeDir="false" afterPath="$PROJECT_DIR$/received-window-size-by-time.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sent-window-size-by-time.csv" beforeDir="false" afterPath="$PROJECT_DIR$/sent-window-size-by-time.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/seq-num-dropped-by-time.csv" beforeDir="false" afterPath="$PROJECT_DIR$/seq-num-dropped-by-time.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/seq-num-received-by-time.csv" beforeDir="false" afterPath="$PROJECT_DIR$/seq-num-received-by-time.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/TCPClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/TCPClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/TCPServer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/TCPServer.java" afterDir="false" />
     </list>

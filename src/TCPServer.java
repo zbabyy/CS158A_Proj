@@ -50,7 +50,7 @@ public class TCPServer {
         int SEGMENT_SIZE = 1024;
 
         //constant for total number of segments being transmitted from client
-        int TOTAL_ITERATIONS = 10000; //10000000;
+        int TOTAL_ITERATIONS = 100000; //10000000;
 
         //constant for max size window can reach, 2^16
         int MAX_WINDOW_SIZE = (int) Math.pow(2, 16);
@@ -105,7 +105,9 @@ public class TCPServer {
             int receivedOuterbound = segment[2];
 
             //populating to array of received seq numbers, for graph
-            seqNumsReceived.add(receivedOuterbound);
+            if (segmentCount == 1 || (segmentCount % 1000 == 0)) {
+                seqNumsReceived.add(receivedOuterbound);
+            }
 
             //sending ACK back to client upon receiving segment, which is the received sequence number (last value in segment) + 1
             out.writeInt(receivedOuterbound + 1);
@@ -134,7 +136,9 @@ public class TCPServer {
             expectedSegment = segmentCount + 1;
 
             //populating array of updated window size, for graph
-            windowSizes.add(windowSize);
+            if (segmentCount == 1 || (segmentCount % 1000 == 0)) {
+                windowSizes.add(windowSize);
+            }
 
             //calculating the goodput every 1000 segments received
             if (segmentCount % 1000 == 0) {
@@ -201,7 +205,7 @@ public class TCPServer {
             bw.newLine();
 
             for (int i = 0; i < windowSizes.size(); i++) {
-                bw.write((i + 1) + "," + windowSizes.get(i));
+                bw.write((i == 0 ? 1 : i * 1000) + "," + windowSizes.get(i));
                 bw.newLine();
             }
             bw.close();
@@ -227,7 +231,7 @@ public class TCPServer {
             bw.newLine();
 
             for (int i = 0; i < seqNumsReceived.size(); i++) {
-                bw.write((i + 1) + "," + seqNumsReceived.get(i));
+                bw.write((i == 0 ? 1 : i * 1000) + "," + seqNumsReceived.get(i));
                 bw.newLine();
             }
             bw.close();

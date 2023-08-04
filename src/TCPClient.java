@@ -36,7 +36,7 @@ public class TCPClient {
     static int SEGMENT_SIZE = 1024;
 
     //constant for total number of segments being transmitted
-    static int TOTAL_SEGMENTS = 10000; //10000000;
+    static int TOTAL_SEGMENTS = 100000; //10000000;
 
     //constant for max size window can reach, 2^16
     static int MAX_WINDOW_SIZE = (int) Math.pow(2, 16);
@@ -127,9 +127,6 @@ public class TCPClient {
                     //increment number of segments
                     segment++;
 
-                    //storing window sizes in client for sent window size graph
-                    windowSizes.add(windowSize);
-
                     //reached 10 million
                     if (segment >= TOTAL_SEGMENTS + 1) {
                         break;
@@ -157,6 +154,12 @@ public class TCPClient {
                         }
                     }
                 }
+
+                //storing window sizes in client for sent window size graph
+                if (segment == 1 || (segment % 1000 == 0)) {
+                    windowSizes.add(windowSize);
+                }
+
                 if (segment >= TOTAL_SEGMENTS + 1) {
                     break;
                 }
@@ -205,7 +208,7 @@ public class TCPClient {
             bw.newLine();
 
             for (int i = 0; i < windowSizes.size(); i++) {
-                bw.write((i + 1) + "," + windowSizes.get(i));
+                bw.write((i == 0 ? 1 : i * 1000) + "," + windowSizes.get(i));
                 bw.newLine();
             }
             bw.close();
