@@ -36,7 +36,7 @@ public class TCPClient {
     static int SEGMENT_SIZE = 1024;
 
     //constant for total number of segments being transmitted
-    static int TOTAL_SEGMENTS = 100000; //10000000;
+    static int TOTAL_SEGMENTS = 10000000;
 
     //constant for max size window can reach, 2^16
     static int MAX_WINDOW_SIZE = (int) Math.pow(2, 16);
@@ -124,6 +124,12 @@ public class TCPClient {
                         seqNumsDropped.add(droppedMap);
                         System.out.println("Missing ACK for segment: " + segment + " Missed: " + seqNumsDropped.size());
                     }
+
+                    //storing window sizes in client for sent window size graph
+                    if (segment == 1 || (segment % 1000 == 0)) {
+                        windowSizes.add(windowSize);
+                    }
+
                     //increment number of segments
                     segment++;
 
@@ -155,14 +161,13 @@ public class TCPClient {
                     }
                 }
 
-                //storing window sizes in client for sent window size graph
-                if (segment == 1 || (segment % 1000 == 0)) {
-                    windowSizes.add(windowSize);
-                }
-
                 if (segment >= TOTAL_SEGMENTS + 1) {
                     break;
                 }
+            }
+
+            if (segment % 1000 == 0) {
+                windowSizes.add(windowSize);
             }
 
             //same as in server, here the oldest missing segment is saved, and is retransmitted at the end

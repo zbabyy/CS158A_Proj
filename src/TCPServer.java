@@ -50,7 +50,7 @@ public class TCPServer {
         int SEGMENT_SIZE = 1024;
 
         //constant for total number of segments being transmitted from client
-        int TOTAL_ITERATIONS = 100000; //10000000;
+        int TOTAL_ITERATIONS = 10000000;
 
         //constant for max size window can reach, 2^16
         int MAX_WINDOW_SIZE = (int) Math.pow(2, 16);
