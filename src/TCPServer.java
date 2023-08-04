@@ -290,12 +290,17 @@ public class TCPServer {
     reading 4 values passed from client
      */
     private static int[] readInts(BufferedReader in) throws IOException, ClassNotFoundException {
-//        List<Integer> ints = (List<Integer>)in.readObject();
-        int[] ints = new int[4];
-        ints[0] = Integer.parseInt(in.readLine());
-        ints[1] = Integer.parseInt(in.readLine());
-        ints[2] = Integer.parseInt(in.readLine());
-        ints[3] = Integer.parseInt(in.readLine());
-        return ints;
+        //This try catch handles early termination of client
+        try {
+            int[] ints = new int[4];
+            ints[0] = Integer.parseInt(in.readLine());
+            ints[1] = Integer.parseInt(in.readLine());
+            ints[2] = Integer.parseInt(in.readLine());
+            ints[3] = Integer.parseInt(in.readLine());
+            return ints;
+        }
+        catch (Exception e) {
+            return null;
+        }
     }
 }

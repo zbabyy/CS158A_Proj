@@ -47,7 +47,7 @@ public class TCPClient {
     static int windowSize = 0;
     public static void main(String[] args) {
         //local IP address of machine
-        String serverIp = "192.168.4.102";
+        String serverIp = "127.0.0.1";
         int serverPort = 12345;
 
         String initialString = "network";
